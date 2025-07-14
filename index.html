@@ -134,7 +134,7 @@
     }
     .chart-container {
       position: absolute;
-      top: 200px;
+      top: 250px;
       right: 10px;
       background: white;
       padding: 15px;
@@ -340,10 +340,14 @@
             <label for="gravedad">Gravedad *</label>
             <select id="gravedad" required>
               <option value="">Seleccione...</option>
+              <option value="Ninguno">Ninguno</option>
+              <option value="Muy leve">Muy leve</option>
               <option value="Leve">Leve</option>
               <option value="Moderado">Moderado</option>
-              <option value="Grave">Grave</option>
-              <option value="Muy grave">Muy grave</option>
+              <option value="Severo">Severo</option>
+              <option value="Muy severo">Muy severo</option>
+              <option value="Colapso parcial">Colapso parcial</option>
+              <option value="Colapso">Colapso</option>
             </select>
           </div>
           
@@ -391,7 +395,7 @@
       <div id="layer-list"></div>
     </div>
     
-    <!-- Gráfico de pastel para tipos de daño - AHORA EN EL LADO DERECHO -->
+    <!-- Gráfico de pastel para tipos de daño -->
     <div class="chart-container">
       <h4 style="margin-top: 0;">Distribución de Tipos de Daño</h4>
       <canvas id="damageChart"></canvas>
@@ -413,6 +417,18 @@
   let baseLayers = {};
   let allBounds = [];
   
+  // Colores para niveles de gravedad
+  const gravedadColors = {
+    "Ninguno": "#fceaad",      // Amarillo casi blanco
+    "Muy leve": "#8ad50b",         // Verde
+    "Leve": "#8ad565",             // Verde calro
+    "Moderado": "#f1d565",         // Amarillo claro
+    "Severo": "#f1c40f",           // Amarillo
+    "Muy severo": "#e67e22",       // Naranja
+    "Colapso parcial": "#f00019",  // Rojo
+    "Colapso": "#f000f0"           // Morado
+  };
+
   // Variables para el gráfico
   let damageChart;
   let damageTypeCounts = {
@@ -967,7 +983,6 @@
       key.toLowerCase().includes('geom') || 
       key.toLowerCase().includes('geometry') ||
       key.toLowerCase().includes('location') ||
-      key.toLowerCase().includes('coord') ||
       (keys.includes('latitude') && keys.includes('longitude')) ||
       (keys.includes('lat') && keys.includes('lon')) ||
       (keys.includes('lat') && keys.includes('lng'))
@@ -1042,7 +1057,25 @@
     }
   }
 
-  function getLayerStyle(layerName, geometryType, color) {
+  function getLayerStyle(layerName, geometryType, color, featureProperties = {}) {
+    // Estilo especial para reportes_danos
+    if (layerName === 'reportes_danos' && geometryType === 'Point') {
+      const gravedad = featureProperties.gravedad || 'Ningun daño';
+      const pointColor = gravedadColors[gravedad] || color;
+      
+      return {
+        pointStyle: {
+          radius: 8,
+          fillColor: pointColor,
+          color: '#ffffff',
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.8
+        }
+      };
+    }
+
+    // Resto de estilos permanece igual
     const isMovimientosLadera = layerName === 'movimientos_de_ladera_a';
     
     if (geometryType === 'Point' || geometryType === 'MultiPoint') {
@@ -1152,7 +1185,7 @@
 
             if (geometry.type === 'Feature' && geometry.geometry) {
               const geometryType = geometry.geometry.type;
-              const layerStyle = getLayerStyle(tabla, geometryType, color);
+              const layerStyle = getLayerStyle(tabla, geometryType, color, row);
               
               const layer = L.geoJSON(geometry, {
                 pointToLayer: (feature, latlng) => {
@@ -1182,7 +1215,7 @@
                 geometry: geometry
               };
               const geometryType = geometry.type;
-              const layerStyle = getLayerStyle(tabla, geometryType, color);
+              const layerStyle = getLayerStyle(tabla, geometryType, color, row);
               
               const layer = L.geoJSON(feature, {
                 pointToLayer: (feature, latlng) => {
